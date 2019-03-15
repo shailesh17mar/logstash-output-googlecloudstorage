@@ -1,6 +1,6 @@
-:plugin: google_cloud_storage
+:plugin: file
 :type: output
-:default_codec: plain
+:default_codec: json_lines
 
 ///////////////////////////////////////////
 START - GENERATED VARIABLES, DO NOT EDIT!
@@ -15,87 +15,41 @@ END - GENERATED VARIABLES, DO NOT EDIT!
 
 [id="plugins-{type}s-{plugin}"]
 
-=== Google_cloud_storage output plugin
+=== File output plugin
 
 include::{include_path}/plugin_header.asciidoc[]
 
 ==== Description
 
-Summary: plugin to upload log events to Google Cloud Storage (GCS), rolling
-files based on the date pattern provided as a configuration setting. Events
-are written to files locally and, once file is closed, this plugin uploads
-it to the configured bucket.
+This output writes events to files on disk. You can use fields
+from the event as parts of the filename and/or path.
 
-For more info on Google Cloud Storage, please go to:
-https://cloud.google.com/products/cloud-storage
-
-In order to use this plugin, a Google service account must be used. For
-more information, please refer to:
-https://developers.google.com/storage/docs/authentication#service_accounts
-
-Recommendation: experiment with the settings depending on how much log
-data you generate, so the uploader can keep up with the generated logs.
-Using gzip output can be a good option to reduce network traffic when
-uploading the log files and in terms of storage costs as well.
-
-USAGE:
-This is an example of logstash config:
-
-[source,json]
---------------------------
+By default, this output writes one event per line in **json** format.
+You can customise the line format using the `line` codec like
+[source,ruby]
 output {
-   google_cloud_storage {
-     bucket => "my_bucket"                                     (required)
-     key_path => "/path/to/privatekey.p12"                     (required)
-     key_password => "notasecret"                              (optional)
-     service_account => "1234@developer.gserviceaccount.com"   (required)
-     temp_directory => "/tmp/logstash-gcs"                     (optional)
-     log_file_prefix => "logstash_gcs"                         (optional)
-     max_file_size_kbytes => 1024                              (optional)
-     output_format => "plain"                                  (optional)
-     date_pattern => "%Y-%m-%dT%H:00"                          (optional)
-     flush_interval_secs => 2                                  (optional)
-     gzip => false                                             (optional)
-     gzip_content_encoding => false                            (optional)
-     uploader_interval_secs => 60                              (optional)
-     include_uuid => true                                      (optional)
-     include_hostname => true                                  (optional)
-   }
+ file {
+   path => ...
+   codec => line { format => "custom format: %{message}"}
+ }
 }
---------------------------
-
-* Support logstash event variables to determine filename.
-* Turn Google API code into a Plugin Mixin (like AwsConfig).
-* There's no recover method, so if logstash/plugin crashes, files may not
-be uploaded to GCS.
-* Allow user to configure file name.
-* Allow parallel uploads for heavier loads (+ connection configuration if
-exposed by Ruby API client)
 
 [id="plugins-{type}s-{plugin}-options"]
-==== Google_cloud_storage Output Configuration Options
+==== File Output Configuration Options
 
 This plugin supports the following configuration options plus the <<plugins-{type}s-{plugin}-common-options>> described later.
 
 [cols="<,<,<",options="header",]
 |=======================================================================
 |Setting |Input type|Required
-| <<plugins-{type}s-{plugin}-bucket>> |<<string,string>>|Yes
-| <<plugins-{type}s-{plugin}-date_pattern>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-flush_interval_secs>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-create_if_deleted>> |<<boolean,boolean>>|No
+| <<plugins-{type}s-{plugin}-dir_mode>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-file_mode>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-filename_failure>> |<<string,string>>|No
+| <<plugins-{type}s-{plugin}-flush_interval>> |<<number,number>>|No
 | <<plugins-{type}s-{plugin}-gzip>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-gzip_content_encoding>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-include_hostname>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-include_uuid>> |<<boolean,boolean>>|No
-| <<plugins-{type}s-{plugin}-key_password>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-key_path>> |<<string,string>>|Yes
-| <<plugins-{type}s-{plugin}-log_file_prefix>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-max_concurrent_uploads>> |<<number,number>>|No
-| <<plugins-{type}s-{plugin}-max_file_size_kbytes>> |<<number,number>>|No
-| <<plugins-{type}s-{plugin}-output_format>> |<<string,string>>, one of `["json", "plain"]`|No
-| <<plugins-{type}s-{plugin}-service_account>> |<<string,string>>|Yes
-| <<plugins-{type}s-{plugin}-temp_directory>> |<<string,string>>|No
-| <<plugins-{type}s-{plugin}-uploader_interval_secs>> |<<number,number>>|No
+| <<plugins-{type}s-{plugin}-path>> |<<string,string>>|Yes
+| <<plugins-{type}s-{plugin}-write_behavior>> |<<string,string>>|No
 |=======================================================================
 
 Also see <<plugins-{type}s-{plugin}-common-options>> for a list of options supported by all
@@ -103,170 +57,91 @@ output plugins.
 
 &nbsp;
 
-[id="plugins-{type}s-{plugin}-bucket"]
-===== `bucket` 
-
-  * This is a required setting.
-  * Value type is <<string,string>>
-  * There is no default value for this setting.
-
-GCS bucket name, without "gs://" or any other prefix.
-
-[id="plugins-{type}s-{plugin}-date_pattern"]
-===== `date_pattern` 
-
-  * Value type is <<string,string>>
-  * Default value is `"%Y-%m-%dT%H:00"`
-
-Time pattern for log file, defaults to hourly files.
-Must Time.strftime patterns: www.ruby-doc.org/core-2.0/Time.html#method-i-strftime
-
-[id="plugins-{type}s-{plugin}-flush_interval_secs"]
-===== `flush_interval_secs` 
-
-  * Value type is <<number,number>>
-  * Default value is `2`
-
-Flush interval in seconds for flushing writes to log files. 0 will flush
-on every message.
-
-[id="plugins-{type}s-{plugin}-gzip"]
-===== `gzip` 
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `false`
-
-Gzip output stream when writing events to log files, set
-`Content-Type` to `application/gzip` instead of `text/plain`, and
-use file suffix `.log.gz` instead of `.log`.
-
-[id="plugins-{type}s-{plugin}-gzip_content_encoding"]
-===== `gzip_content_encoding`
-
-added[3.3.0]
-
-  * Value type is <<boolean,boolean>>
-  * Default value is `false`
-
-Gzip output stream when writing events to log files and set `Content-Encoding` to `gzip`.
-This will upload your files as `gzip` saving network and storage costs, but they will be
-transparently decompressed when you read them from the storage bucket.
-
-See the Cloud Storage documentation on https://cloud.google.com/storage/docs/metadata#content-encoding[metadata] and 
-https://cloud.google.com/storage/docs/transcoding#content-type_vs_content-encoding[transcoding]
-for more information.
-
-**Note**: It is not recommended to use both `gzip_content_encoding` and `gzip`.
-This compresses your file _twice_, will increase the work your machine does and makes 
-the files larger than just compressing once.
-
-[id="plugins-{type}s-{plugin}-include_hostname"]
-===== `include_hostname`
-
-added[3.1.0]
+[id="plugins-{type}s-{plugin}-create_if_deleted"]
+===== `create_if_deleted`
 
   * Value type is <<boolean,boolean>>
   * Default value is `true`
 
-Should the hostname be included in the file name?
-You may want to turn this off for privacy reasons or if you are running multiple
-instances of Logstash and need to match the files you create with a simple glob
-such as if you wanted to import files to BigQuery.
+If the configured file is deleted, but an event is handled by the plugin,
+the plugin will recreate the file. Default => true
 
+[id="plugins-{type}s-{plugin}-dir_mode"]
+===== `dir_mode`
 
-[id="plugins-{type}s-{plugin}-include_uuid"]
-===== `include_uuid`
+  * Value type is <<number,number>>
+  * Default value is `-1`
 
-added[3.1.0]
+Dir access mode to use. Note that due to the bug in jruby system umask
+is ignored on linux: https://github.com/jruby/jruby/issues/3426
+Setting it to -1 uses default OS value.
+Example: `"dir_mode" => 0750`
+
+[id="plugins-{type}s-{plugin}-file_mode"]
+===== `file_mode`
+
+  * Value type is <<number,number>>
+  * Default value is `-1`
+
+File access mode to use. Note that due to the bug in jruby system umask
+is ignored on linux: https://github.com/jruby/jruby/issues/3426
+Setting it to -1 uses default OS value.
+Example: `"file_mode" => 0640`
+
+[id="plugins-{type}s-{plugin}-filename_failure"]
+===== `filename_failure`
+
+  * Value type is <<string,string>>
+  * Default value is `"_filepath_failures"`
+
+If the generated path is invalid, the events will be saved
+into this file and inside the defined path.
+
+[id="plugins-{type}s-{plugin}-flush_interval"]
+===== `flush_interval`
+
+  * Value type is <<number,number>>
+  * Default value is `2`
+
+Flush interval (in seconds) for flushing writes to log files.
+0 will flush on every message.
+
+[id="plugins-{type}s-{plugin}-gzip"]
+===== `gzip`
 
   * Value type is <<boolean,boolean>>
   * Default value is `false`
 
-Adds a UUID to the end of a file name.
-You may want to enable this feature so files don't clobber one another if you're
-running multiple instances of Logstash or if you expect frequent node restarts.
+Gzip the output stream before writing to disk.
 
-[id="plugins-{type}s-{plugin}-key_password"]
-===== `key_password` 
-
-  * Value type is <<string,string>>
-  * Default value is `"notasecret"`
-
-GCS private key password.
-
-[id="plugins-{type}s-{plugin}-key_path"]
-===== `key_path` 
+[id="plugins-{type}s-{plugin}-path"]
+===== `path`
 
   * This is a required setting.
   * Value type is <<string,string>>
   * There is no default value for this setting.
 
-GCS path to private key file.
+The path to the file to write. Event fields can be used here,
+like `/var/log/logstash/%{host}/%{application}`
+One may also utilize the path option for date-based log
+rotation via the joda time format. This will use the event
+timestamp.
+E.g.: `path => "./test-%{+YYYY-MM-dd}.txt"` to create
+`./test-2013-05-29.txt`
 
-[id="plugins-{type}s-{plugin}-log_file_prefix"]
-===== `log_file_prefix` 
+If you use an absolute path you cannot start with a dynamic string.
+E.g: `/%{myfield}/`, `/test-%{myfield}/` are not valid paths
 
-  * Value type is <<string,string>>
-  * Default value is `"logstash_gcs"`
-
-Log file prefix. Log file will follow the format:
-<prefix>_hostname_date<.part?>.log
-
-[id="plugins-{type}s-{plugin}-max_concurrent_uploads"]
-===== `max_concurrent_uploads`
-
-  * Value type is <<number,number>>
-  * Default value is `5`
-
-Sets the maximum number of concurrent uploads to Cloud Storage at a time.
-Uploads are I/O bound so it makes sense to tune this paramater with regards
-to the network bandwidth available and the latency between your server and
-Cloud Storage.
-
-[id="plugins-{type}s-{plugin}-max_file_size_kbytes"]
-===== `max_file_size_kbytes` 
-
-  * Value type is <<number,number>>
-  * Default value is `10000`
-
-Sets max file size in kbytes. 0 disable max file check.
-
-[id="plugins-{type}s-{plugin}-output_format"]
-===== `output_format` 
-
-  * Value can be any of: `json`, `plain`
-  * Default value is `"plain"`
-
-The event format you want to store in files. Defaults to plain text.
-
-[id="plugins-{type}s-{plugin}-service_account"]
-===== `service_account` 
-
-  * This is a required setting.
-  * Value type is <<string,string>>
-  * There is no default value for this setting.
-
-GCS service account.
-
-[id="plugins-{type}s-{plugin}-temp_directory"]
-===== `temp_directory` 
+[id="plugins-{type}s-{plugin}-write_behavior"]
+===== `write_behavior`
 
   * Value type is <<string,string>>
-  * Default value is `""`
+  * Default value is `append`
 
-Directory where temporary files are stored.
-Defaults to /tmp/logstash-gcs-<random-suffix>
+If `append`, the file will be opened for appending and each new event will be written at the end of the file.
+If `overwrite`, the file will be truncated before writing and only the most recent event will appear in the file.
 
-[id="plugins-{type}s-{plugin}-uploader_interval_secs"]
-===== `uploader_interval_secs` 
-
-  * Value type is <<number,number>>
-  * Default value is `60`
-
-Uploader interval when uploading new files to GCS. Adjust time based
-on your time pattern (for example, for hourly files, this interval can be
-around one hour).
-
-
-
+[id="plugins-{type}s-{plugin}-common-options"]
 include::{include_path}/{type}.asciidoc[]
+
+:default_codec!:

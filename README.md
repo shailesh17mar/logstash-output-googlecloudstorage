@@ -1,6 +1,6 @@
 # Logstash Plugin
 
-[![Travis Build Status](https://travis-ci.org/logstash-plugins/logstash-output-google_cloud_storage.svg)](https://travis-ci.org/logstash-plugins/logstash-output-google_cloud_storage)
+[![Travis Build Status](https://travis-ci.org/logstash-plugins/logstash-output-file.svg)](https://travis-ci.org/logstash-plugins/logstash-output-file)
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).
 
