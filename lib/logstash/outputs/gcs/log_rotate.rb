@@ -8,6 +8,7 @@ module LogStash
       class LogRotate
         def initialize(path_factory, max_file_size_bytes, gzip, flush_interval_secs, gzip_encoded=false)
           @path_factory = path_factory
+          @files = {}
           @max_file_size_bytes = max_file_size_bytes
           @gzip = gzip
           @flush_interval_secs = flush_interval_secs
@@ -40,8 +41,9 @@ module LogStash
         # ALWAYS be open at the completion of this function.
         def rotate_log!
           @lock.with_write_lock do
-            unless @temp_file.nil?
-              @temp_file.close!
+            # @files.each do |path, fd|
+            unless @time_file.nil?
+              @time_file.close!
               @rotate_callback.call(@temp_file.path) unless @rotate_callback.nil?
             end
 
@@ -49,6 +51,7 @@ module LogStash
 
             path = @path_factory.current_path
             @temp_file = LogStash::Outputs::Gcs::LogFileFactory.create(path, @gzip, true, @gzip_encoded)
+            # end
           end
         end
 

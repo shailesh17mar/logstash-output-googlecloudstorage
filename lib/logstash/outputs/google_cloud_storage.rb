@@ -177,7 +177,7 @@ class LogStash::Outputs::GoogleCloudStorage < LogStash::Outputs::Base
       message = event.to_s
     end
 
-    @log_rotater.writeln(message)
+    @log_rotater.writeln(message. event)
   end
 
   public

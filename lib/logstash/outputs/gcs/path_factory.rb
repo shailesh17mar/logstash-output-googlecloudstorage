@@ -9,7 +9,7 @@ module LogStash
         def initialize(directory, prefix, include_host, date_pattern, include_part, include_uuid, is_gzipped)
           @path_lock = Mutex.new
 
-          pattern = '%{prefix}'
+          pattern = prefix
           pattern += '_%{host}' if include_host
           pattern += '_%{date}'
           @base_pattern = pattern
